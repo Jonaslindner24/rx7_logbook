@@ -1,0 +1,33 @@
+cmake_minimum_required(VERSION 3.16)
+project(rx7_dashboard VERSION 0.1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+option(MOCK_HARDWARE "Build without Raspberry Pi hardware dependencies" OFF)
+
+find_package(Threads REQUIRED)
+
+add_executable(rx7_dashboard
+    src/main.cpp
+    src/hardware/oled_driver.cpp
+    src/hardware/gps_reader.cpp
+    src/storage/logbook.cpp
+)
+
+target_include_directories(rx7_dashboard PRIVATE include src)
+target_link_libraries(rx7_dashboard PRIVATE Threads::Threads m)
+
+if(MOCK_HARDWARE)
+    target_compile_definitions(rx7_dashboard PRIVATE MOCK_HARDWARE=1)
+else()
+    pkg_check_modules(GPIOD libgpiod)
+    find_library(SQLITE3_LIB sqlite3)
+    if(SQLITE3_LIB)
+        target_link_libraries(rx7_dashboard PRIVATE ${SQLITE3_LIB})
+        target_compile_definitions(rx7_dashboard PRIVATE HAVE_SQLITE3=1)
+    endif()
+    # Für libgpiod optional aktivieren, sobald auf dem Pi installiert:
+    # target_link_libraries(rx7_dashboard PRIVATE gpiod)
+endif()
